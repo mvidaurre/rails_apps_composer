@@ -14,7 +14,10 @@ gsub_file 'Gemfile', /\s*gem 'sdoc', require: false\nend/, ''
 ## Web Server
 if (prefs[:dev_webserver] == prefs[:prod_webserver])
   add_gem 'thin' if prefer :dev_webserver, 'thin'
-  add_gem 'unicorn' if prefer :dev_webserver, 'unicorn'
+  if prefer :dev_webserver, 'unicorn'
+    add_gem 'unicorn'
+    add_gem 'foreman'
+  end
   add_gem 'puma' if prefer :dev_webserver, 'puma'
 else
   add_gem 'thin', :group => [:development, :test] if prefer :dev_webserver, 'thin'
@@ -25,9 +28,9 @@ else
   add_gem 'puma', :group => :production if prefer :prod_webserver, 'puma'
 end
 
-## Rails 4.0 attr_accessible Compatibility
-if prefer :apps4, false
-  add_gem 'protected_attributes' if Rails::VERSION::MAJOR.to_s == "4"
+## Rails 3.0 strong_parameters Compatibility
+if prefer :apps3, false
+  add_gem 'strong_parameters' if Rails::VERSION::MAJOR.to_s == "3"
 end
 
 ## Database Adapter
@@ -52,6 +55,17 @@ if prefer :templates, 'slim'
   add_gem 'haml-rails', :group => :development
   add_gem 'html2haml', :group => :development
 end
+
+## Javascript Template Engine
+if prefer :javascript_templates, 'handlebars'
+  add_gem 'handlebars-source'
+  add_gem 'handlebars_assets'
+end
+if prefer :javascript_templates, 'mustache'
+  add_gem 'mustache'
+  add_gem 'mustache-rails', :require => 'mustache/railtie'
+end
+add_gem 'underscore-rails' if prefer :javascript_templates, 'underscore'
 
 ## Testing Framework
 if prefer :unit_test, 'rspec'
@@ -99,6 +113,20 @@ if prefer :bootstrap, 'less'
   add_gem 'libv8'
   add_gem 'therubyracer', :group => :assets, :platform => :ruby, :require => 'v8'
 end
+
+## Javascript MV*  Framework
+if prefer :javascript_mvc_framework, 'emberjs'
+  add_gem 'ember-rails'
+  add_gem 'ember-source', '1.0.0.rc6.4'
+  if prefer :templates, 'haml'
+    add_gem 'emblem-rails'
+  end  
+end
+if prefer :javascript_mvc_framework, 'angularjs'
+  add_gem 'angularjs-rails'
+  add_gem 'angularjs-rails-resource'
+end
+add_gem 'rails-backbone' if prefer :javascript_mvc_framework, 'backbonejs'
 
 ## Email
 add_gem 'sendgrid' if prefer :email, 'sendgrid'
@@ -216,6 +244,40 @@ end # after_bundler
 
 ### GENERATORS ###
 after_bundler do
+  ## Foreman config for Unicorn
+  if prefer :dev_webserver, 'unicorn'
+    create_file "Procfile" do
+      "web: bundle exec unicorn -p $PORT -c ./config/unicorn.rb"
+    end
+    if config['workers']
+      prefs[:workers] = config['workers']
+    end
+    if prefs[:workers].to_i > 0
+      say_wizard "creating unicorn config for #{prefs[:workers]} workers"
+      create_file "config/unicorn.rb" do
+        %Q{worker_processes #{prefs[:workers]} # get more out of your free heroku hours
+timeout 30
+preload_app true
+
+before_fork do |server, worker|
+  if defined?(ActiveRecord::Base)
+    ActiveRecord::Base.connection.disconnect!
+    Rails.logger.info 'Disconnected from ActiveRecord'
+  end
+
+  sleep 1
+end
+
+after_fork do |server, worker|
+  if defined?(ActiveRecord::Base)
+    ActiveRecord::Base.establish_connection
+    Rails.logger.info 'Connected to ActiveRecord'
+  end
+end
+}
+      end
+    end
+  end
   ## Front-end Framework
   generate 'foundation:install' if prefer :frontend, 'foundation'
   ## Form Builder
@@ -258,3 +320,8 @@ author: RailsApps
 requires: [setup]
 run_after: [setup]
 category: configuration
+
+config:
+  - workers:
+      type: string
+      prompt: How many workers?

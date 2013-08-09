@@ -12,8 +12,8 @@ gemfile = File.read(destination_root() + '/Gemfile')
 sqlite_detected = gemfile.include? 'sqlite3'
 
 ## Web Server
-prefs[:dev_webserver] = multiple_choice "Web server for development?", [["WEBrick (default)", "webrick"],
-  ["Thin", "thin"], ["Unicorn", "unicorn"], ["Puma", "puma"]] unless prefs.has_key? :dev_webserver
+prefs[:dev_webserver] = multiple_choice "Web server for development?", [["Unicorn", "unicorn"],["WEBrick", "webrick"],
+  ["Thin", "thin"], ["Puma", "puma"]] unless prefs.has_key? :dev_webserver
 prefs[:prod_webserver] = multiple_choice "Web server for production?", [["Same as development", "same"],
   ["Thin", "thin"], ["Unicorn", "unicorn"], ["Puma", "puma"]] unless prefs.has_key? :prod_webserver
 if prefs[:prod_webserver] == 'same'
@@ -28,7 +28,7 @@ if prefs[:prod_webserver] == 'same'
 end
 
 ## Database Adapter
-prefs[:database] = multiple_choice "Database used in development?", [["SQLite", "sqlite"], ["PostgreSQL", "postgresql"],
+prefs[:database] = multiple_choice "Database used in development?",[["PostgreSQL", "postgresql"], ["SQLite", "sqlite"],
   ["MySQL", "mysql"], ["MongoDB", "mongodb"]] unless prefs.has_key? :database
 case prefs[:database]
   when 'mongodb'
@@ -49,19 +49,22 @@ end
 ## Template Engine
 prefs[:templates] = multiple_choice "Template engine?", [["ERB", "erb"], ["Haml", "haml"], ["Slim (experimental)", "slim"]] unless prefs.has_key? :templates
 
+## Javascript Template Engine
+prefs[:javascript_templates] = multiple_choice "Javascript Template engine?", [["Handlebars", "handlebars"], ["Mustache", "mustache"], ["Underscore", "underscore"], ["None", "none"]] unless prefs.has_key? :javascript_templates
+
 ## Testing Framework
 if recipes.include? 'testing'
-  prefs[:unit_test] = multiple_choice "Unit testing?", [["Test::Unit", "test_unit"], ["RSpec", "rspec"], ["MiniTest", "minitest"]] unless prefs.has_key? :unit_test
-  prefs[:integration] = multiple_choice "Integration testing?", [["None", "none"], ["RSpec with Capybara", "rspec-capybara"],
-    ["Cucumber with Capybara", "cucumber"], ["Turnip with Capybara", "turnip"], ["MiniTest with Capybara", "minitest-capybara"]] unless prefs.has_key? :integration
-  prefs[:continuous_testing] = multiple_choice "Continuous testing?", [["None", "none"], ["Guard", "guard"]] unless prefs.has_key? :continuous_testing
-  prefs[:fixtures] = multiple_choice "Fixture replacement?", [["None","none"], ["Factory Girl","factory_girl"], ["Machinist","machinist"], ["Fabrication","fabrication"]] unless prefs.has_key? :fixtures
+  prefs[:unit_test] = multiple_choice "Unit testing?", [["RSpec", "rspec"], ["MiniTest", "minitest"]] unless prefs.has_key? :unit_test
+  prefs[:integration] = multiple_choice "Integration testing?", [["RSpec with Capybara", "rspec-capybara"],
+    ["Cucumber with Capybara", "cucumber"], ["Turnip with Capybara", "turnip"], ["MiniTest with Capybara", "minitest-capybara"], ["None", "none"]] unless prefs.has_key? :integration
+  prefs[:continuous_testing] = multiple_choice "Continuous testing?", [["Guard", "guard"], ["None", "none"]] unless prefs.has_key? :continuous_testing
+  prefs[:fixtures] = multiple_choice "Fixture replacement?", [["Factory Girl","factory_girl"], ["Machinist","machinist"], ["Fabrication","fabrication"], ["None","none"]] unless prefs.has_key? :fixtures
 end
 
 ## Front-end Framework
 if recipes.include? 'frontend'
-  prefs[:frontend] = multiple_choice "Front-end framework?", [["None", "none"], ["Twitter Bootstrap", "bootstrap"],
-    ["Zurb Foundation", "foundation"], ["Skeleton", "skeleton"], ["Just normalize CSS for consistent styling", "normalize"]] unless prefs.has_key? :frontend
+  prefs[:frontend] = multiple_choice "Front-end framework?", [["Zurb Foundation", "foundation"], ["Twitter Bootstrap", "bootstrap"],
+    ["Skeleton", "skeleton"], ["Just normalize CSS for consistent styling", "normalize"], ["None", "none"]] unless prefs.has_key? :frontend
   if prefer :frontend, 'bootstrap'
     case HOST_OS
       when /mswin|windows/i
@@ -73,6 +76,11 @@ if recipes.include? 'frontend'
   end
 end
 
+## Javascript MV*  Framework
+if recipes.include? 'javascript_mvc_framework'
+  prefs[:javascript_mvc_framework] = multiple_choice "Javascript MV* framework?", [["Ember.js", "emberjs"], ["Angular.js", "angularjs"], ["Backbone.js", "backbonejs"], ["None","none"]] unless prefs.has_key? :javascript_mvc_framework
+end
+
 ## Email
 if recipes.include? 'email'
   prefs[:email] = multiple_choice "Add support for sending email?", [["None", "none"], ["Gmail","gmail"], ["SMTP","smtp"],
@@ -82,7 +90,7 @@ else
 end
 
 ## Authentication and Authorization
-if recipes.include? 'models'
+if recipes.include? 'models' 
   prefs[:authentication] = multiple_choice "Authentication?", [["None", "none"], ["Devise", "devise"], ["OmniAuth", "omniauth"]] unless prefs.has_key? :authentication
   case prefs[:authentication]
     when 'devise'
